@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Yatra - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        :root { --primary: #99a0ff; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .three-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .modal.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="three-container" class="three-container"></div>
+
+    <div class="min-h-screen" id="dashboardContainer">
+        <!-- Super Admin Dashboard -->
+        <div id="superAdminDashboard" class="dashboard-view">
+            <!-- Sidebar -->
+            <aside class="fixed top-0 left-0 h-screen w-64 bg-white shadow-lg">
+                <div class="p-4">
+                    <img src="https://firebasestorage.googleapis.com/v0/b/widecanvas-d0dd4.appspot.com/o/logos%2Ffinal2%20for%20web.png?alt=media&token=01253bc4-1c37-422f-90f0-cb1b833154a2" alt="Logo" class="h-8">
+                </div>
+                <nav class="mt-8">
+                    <a href="#" class="flex items-center px-4 py-3 text-primary bg-indigo-50 border-l-4 border-primary hover:bg-indigo-100 transition-colors">
+                        <i class="bi bi-grid-1x2-fill mr-3"></i> Dashboard
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-building mr-3"></i> Warehouses
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-box-seam mr-3"></i> Products
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-truck mr-3"></i> Vehicles
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-people mr-3"></i> Users
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-credit-card mr-3"></i> Subscriptions
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-tag mr-3"></i> Promo Codes
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-graph-up mr-3"></i> Analytics
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-gear mr-3"></i> Settings
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="ml-64 p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Super Admin Dashboard</h1>
+                        <p class="text-gray-500">Manage all warehouses and operations</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-white p-2 rounded-full shadow hover:shadow-md transition-shadow relative">
+                            <i class="bi bi-bell text-gray-600"></i>
+                            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center">
+                                <span class="font-semibold">SA</span>
+                            </div>
+                            <span class="font-medium text-gray-800">Admin</span>
+                        </div>
+                        <button id="switchToWarehouse" class="px-3 py-1.5 border border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors text-sm">
+                            Switch to Warehouse View
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <!-- Subscription Overview -->
+                    <div class="col-span-2 bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">Warehouse Subscriptions</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="text-left border-b">
+                                        <th class="pb-3">Warehouse</th>
+                                        <th class="pb-3">Plan</th>
+                                        <th class="pb-3">Users</th>
+                                        <th class="pb-3">Expiry Date</th>
+                                        <th class="pb-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <i class="bi bi-building text-primary mr-2"></i>
+                                                Mumbai Central
+                                            </div>
+                                        </td>
+                                        <td>Enterprise</td>
+                                        <td>18/20</td>
+                                        <td>Dec 15, 2023</td>
+                                        <td>
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <i class="bi bi-building text-primary mr-2"></i>
+                                                Delhi Hub
+                                            </div>
+                                        </td>
+                                        <td>Premium</td>
+                                        <td>10/12</td>
+                                        <td>Jan 10, 2024</td>
+                                        <td>
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <i class="bi bi-building text-primary mr-2"></i>
+                                                Bangalore South
+                                            </div>
+                                        </td>
+                                        <td>Basic</td>
+                                        <td>5/5</td>
+                                        <td>Nov 30, 2023</td>
+                                        <td>
+                                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Expiring Soon</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- System Health Card -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">System Health</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-500">Database Usage</span>
+                                    <span class="text-sm text-gray-500">78%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-primary h-2 rounded-full" style="width: 78%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-500">Storage Usage</span>
+                                    <span class="text-sm text-gray-500">42%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-primary h-2 rounded-full" style="width: 42%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm text-gray-500">API Calls</span>
+                                    <span class="text-sm text-gray-500">12,345 / day</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-primary h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t">
+                            <h3 class="text-lg font-semibold mb-2">System Alerts</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-yellow-500 pt-1"><i class="bi bi-exclamation-triangle"></i></span>
+                                    <p class="text-sm text-gray-600">Bangalore South subscription expires in 5 days</p>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-green-500 pt-1"><i class="bi bi-check-circle"></i></span>
+                                    <p class="text-sm text-gray-600">All systems operational</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-500">Total Warehouses</h3>
+                            <i class="bi bi-building text-primary text-xl"></i>
+                        </div>
+                        <p class="text-2xl font-bold mt-2">12</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-500">Total Users</h3>
+                            <i class="bi bi-people text-primary text-xl"></i>
+                        </div>
+                        <p class="text-2xl font-bold mt-2">245</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-500">Total Revenue</h3>
+                            <i class="bi bi-currency-rupee text-primary text-xl"></i>
+                        </div>
+                        <p class="text-2xl font-bold mt-2">₹8,94,562</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-500">Total Stores</h3>
+                            <i class="bi bi-shop text-primary text-xl"></i>
+                        </div>
+                        <p class="text-2xl font-bold mt-2">1,248</p>
+                    </div>
+                </div>
+
+                <!-- Warehouses Map & Analytics -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <div class="col-span-2 bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">Warehouse Locations</h2>
+                        <div class="h-64 bg-gray-200 rounded flex items-center justify-center">
+                            <p class="text-gray-500">Map Component - Warehouse Locations</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">Warehouse Analytics</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="text-md font-medium mb-2">Top Performing Warehouse</h3>
+                                <div class="flex items-center">
+                                    <i class="bi bi-building text-primary mr-2"></i>
+                                    <span>Mumbai Central</span>
+                                    <span class="ml-auto text-green-500">+24%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-md font-medium mb-2">Top Selling Product</h3>
+                                <div class="flex items-center">
+                                    <i class="bi bi-box-seam text-primary mr-2"></i>
+                                    <span>Premium Tea - 500g</span>
+                                    <span class="ml-auto">12,345 units</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-md font-medium mb-2">Most Active Region</h3>
+                                <div class="flex items-center">
+                                    <i class="bi bi-geo-alt text-primary mr-2"></i>
+                                    <span>West Zone</span>
+                                    <span class="ml-auto">45% of sales</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Warehouse & Manage Subscription Forms -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Add Warehouse Form -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">Add Warehouse</h2>
+                        <form id="warehouseForm" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2">Warehouse Name</label>
+                                <input type="text" class="w-full border rounded p-2" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2">Location</label>
+                                <input type="text" class="w-full border rounded p-2" placeholder="Address" required>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Latitude</label>
+                                    <input type="text" class="w-full border rounded p-2" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Longitude</label>
+                                    <input type="text" class="w-full border rounded p-2" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2">Manager</label>
+                                <select class="w-full border rounded p-2" required>
+                                    <option>Select Manager</option>
+                                    <option>Rajesh Kumar</option>
+                                    <option>Priya Sharma</option>
+                                    <option>Vikram Singh</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                Add Warehouse
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Manage Subscription Form -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-xl font-bold mb-4">Manage Subscription</h2>
+                        <form id="subscriptionForm" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2">Warehouse</label>
+                                <select class="w-full border rounded p-2" required>
+                                    <option>Select Warehouse</option>
+                                    <option>Mumbai Central</option>
+                                    <option>Delhi Hub</option>
+                                    <option>Bangalore South</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2">Subscription Plan</label>
+                                <select class="w-full border rounded p-2" required>
+                                    <option>Basic (5 users, ₹4,999/month)</option>
+                                    <option>Premium (12 users, ₹9,999/month)</option>
+                                    <option>Enterprise (20 users, ₹19,999/month)</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Start Date</label>
+                                    <input type="date" class="w-full border rounded p-2" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">End Date</label>
+                                    <input type="date" class="w-full border rounded p-2" required>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="autoRenew" class="mr-2">
+                                <label for="autoRenew" class="text-gray-700">Enable auto-renewal</label>
+                            </div>
+                            <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                Update Subscription
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Warehouse Admin Dashboard -->
+        <div id="warehouseAdminDashboard" class="dashboard-view hidden">
+            <!-- Sidebar -->
+            <aside class="fixed top-0 left-0 h-screen w-64 bg-white shadow-lg">
+                <div class="p-4">
+                    <img src="https://firebasestorage.googleapis.com/v0/b/widecanvas-d0dd4.appspot.com/o/logos%2Ffinal2%20for%20web.png?alt=media&token=01253bc4-1c37-422f-90f0-cb1b833154a2" alt="Logo" class="h-8">
+                </div>
+                <nav class="mt-8">
+                    <a href="#" data-tab="warehouse-overview" class="warehouse-tab flex items-center px-4 py-3 text-primary bg-indigo-50 border-l-4 border-primary hover:bg-indigo-100 transition-colors">
+                        <i class="bi bi-grid-1x2-fill mr-3"></i> Dashboard
+                    </a>
+                    <a href="#" data-tab="inventory" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-box-seam mr-3"></i> Inventory
+                    </a>
+                    <a href="#" data-tab="vehicles" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-truck mr-3"></i> Vehicles
+                    </a>
+                    <a href="#" data-tab="delivery-agents" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-person-badge mr-3"></i> Delivery Agents
+                    </a>
+                    <a href="#" data-tab="orders" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-cart mr-3"></i> Orders
+                    </a>
+                    <a href="#" data-tab="stores" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-shop mr-3"></i> Stores
+                    </a>
+                    <a href="#" data-tab="promocodes" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-tag mr-3"></i> Promo Codes
+                    </a>
+                    <a href="#" data-tab="settings" class="warehouse-tab flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors">
+                        <i class="bi bi-gear mr-3"></i> Settings
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="ml-64 p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Mumbai Central Warehouse</h1>
+                        <p class="text-gray-500">Warehouse Admin Dashboard</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-white p-2 rounded-full shadow hover:shadow-md transition-shadow relative">
+                            <i class="bi bi-bell text-gray-600"></i>
+                            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center">
+                                <span class="font-semibold">RM</span>
+                            </div>
+                            <span class="font-medium text-gray-800">Rajesh Manager</span>
+                        </div>
+                        <button id="switchToSuperAdmin" class="px-3 py-1.5 border border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors text-sm">
+                            Switch to Super Admin View
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Warehouse Overview Tab -->
+                <div id="warehouse-overview" class="tab-content active">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-500">Today's Orders</h3>
+                                <i class="bi bi-cart text-primary text-xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold mt-2">32</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-500">Active Delivery Agents</h3>
+                                <i class="bi bi-person-check text-primary text-xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold mt-2">8/10</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-500">Today's Revenue</h3>
+                                <i class="bi bi-currency-rupee text-primary text-xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold mt-2">₹12,456</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-500">Low Stock Items</h3>
+                                <i class="bi bi-exclamation-triangle text-yellow-500 text-xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold mt-2">5</p>
+                        </div>
+                    </div>
+
+                    <!-- Daily Assignments and Route Planning -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                        <div class="col-span-2 bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Today's Delivery Routes</h2>
+                            <div class="h-64 bg-gray-200 rounded flex items-center justify-center mb-4">
+                                <p class="text-gray-500">Map Component - Delivery Routes</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center">
+                                    <i class="bi bi-truck mr-1"></i> Van 1: South Route
+                                </span>
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center">
+                                    <i class="bi bi-truck mr-1"></i> Van 2: East Route
+                                </span>
+                                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm flex items-center">
+                                    <i class="bi bi-truck mr-1"></i> Van 3: West Route
+                                </span>
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm flex items-center">
+                                    <i class="bi bi-truck mr-1"></i> Van 4: North Route
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Agents Status -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-bold">Delivery Agents Status</h2>
+                                <button class="text-sm text-primary hover:underline">View All</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-green-50 rounded">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                            <span>RS</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Rahul Singh</p>
+                                            <p class="text-xs text-gray-500">Van 2 • 12 Orders</p>
+                                        </div>
+                                    </div>
+                                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-green-50 rounded">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                            <span>PK</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Priya Kumar</p>
+                                            <p class="text-xs text-gray-500">Van 1 • 8 Orders</p>
+                                        </div>
+                                    </div>
+                                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                            <span>AJ</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Ajay Joshi</p>
+                                            <p class="text-xs text-gray-500">Van 4 • Break</p>
+                                        </div>
+                                    </div>
+                                    <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white mr-2">
+                                            <span>SM</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Sanjay Mishra</p>
+                                            <p class="text-xs text-gray-500">Van 3 • Off Duty</p>
+                                        </div>
+                                    </div>
+                                    <span class="w-3 h-3 bg-gray-500 rounded-full"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Assignment & Vehicle Inventory Forms -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Assign Order Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Assign Orders to Delivery Agent</h2>
+                            <form id="assignOrderForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Select Orders</label>
+                                    <select class="w-full border rounded p-2" multiple size="4" required>
+                                        <option>#ORD-1234 - Raghav Store (South)</option>
+                                        <option>#ORD-1235 - Mehta Traders (South)</option>
+                                        <option>#ORD-1236 - Sharma Retail (East)</option>
+                                        <option>#ORD-1237 - City Mart (West)</option>
+                                        <option>#ORD-1238 - Singh Store (North)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Delivery Agent</label>
+                                    <select class="w-full border rounded p-2" required>
+                                        <option>Rahul Singh (Van 2)</option>
+                                        <option>Priya Kumar (Van 1)</option>
+                                        <option>Ajay Joshi (Van 4)</option>
+                                        <option>Unassigned</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Estimated Completion Time</label>
+                                    <input type="time" class="w-full border rounded p-2" required>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Assign Orders
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Assign Vehicle Inventory Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Assign Vehicle Inventory</h2>
+                            <form id="vehicleInventoryForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Vehicle</label>
+                                    <select class="w-full border rounded p-2" required>
+                                        <option>Van 1 (MH-01-AB-1234)</option>
+                                        <option>Van 2 (MH-01-CD-5678)</option>
+                                        <option>Van 3 (MH-01-EF-9012)</option>
+                                        <option>Van 4 (MH-01-GH-3456)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Products</label>
+                                    <div class="border rounded p-2 max-h-40 overflow-y-auto space-y-2">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="prod1" class="mr-2">
+                                            <label for="prod1" class="flex-1">Premium Tea (500g)</label>
+                                            <input type="number" class="w-20 border rounded p-1" placeholder="Qty">
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="prod2" class="mr-2">
+                                            <label for="prod2" class="flex-1">Basmati Rice (5kg)</label>
+                                            <input type="number" class="w-20 border rounded p-1" placeholder="Qty">
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="prod3" class="mr-2">
+                                            <label for="prod3" class="flex-1">Cooking Oil (1L)</label>
+                                            <input type="number" class="w-20 border rounded p-1" placeholder="Qty">
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="prod4" class="mr-2">
+                                            <label for="prod4" class="flex-1">Sugar (1kg)</label>
+                                            <input type="number" class="w-20 border rounded p-1" placeholder="Qty">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Unit Type</label>
+                                    <select class="w-full border rounded p-2" required>
+                                        <option>Box (10 units/box)</option>
+                                        <option>Carton (20 units/carton)</option>
+                                        <option>Individual Units</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Assign Inventory
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Tab -->
+                <div id="inventory" class="tab-content">
+                    <div class="bg-white rounded-lg shadow p-6 mb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">Warehouse Inventory</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 bg-primary text-white rounded hover:bg-opacity-90 transition-colors">
+                                    <i class="bi bi-plus"></i> Add Product
+                                </button>
+                                <button class="px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded hover:bg-gray-50 transition-colors">
+                                    <i class="bi bi-upload"></i> Import
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4 flex space-x-2">
+                            <input type="text" placeholder="Search products..." class="border rounded p-2 flex-1">
+                            <select class="border rounded p-2">
+                                <option>All Categories</option>
+                                <option>Food & Beverages</option>
+                                <option>Personal Care</option>
+                                <option>Household</option>
+                            </select>
+                            <select class="border rounded p-2">
+                                <option>All Status</option>
+                                <option>In Stock</option>
+                                <option>Low Stock</option>
+                                <option>Out of Stock</option>
+                            </select>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left border-b">
+                                        <th class="pb-3">Product Name</th>
+                                        <th class="pb-3">Category</th>
+                                        <th class="pb-3">Stock</th>
+                                        <th class="pb-3">MRP</th>
+                                        <th class="pb-3">Retailer Price</th>
+                                        <th class="pb-3">Status</th>
+                                        <th class="pb-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="py-3">Premium Tea - 500g</td>
+                                        <td>Food & Beverages</td>
+                                        <td>245</td>
+                                        <td>₹120</td>
+                                        <td>₹108</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">In Stock</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">Basmati Rice - 5kg</td>
+                                        <td>Food & Beverages</td>
+                                        <td>120</td>
+                                        <td>₹450</td>
+                                        <td>₹420</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">In Stock</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">Cooking Oil - 1L</td>
+                                        <td>Food & Beverages</td>
+                                        <td>35</td>
+                                        <td>₹180</td>
+                                        <td>₹165</td>
+                                        <td><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Low Stock</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">Sugar - 1kg</td>
+                                        <td>Food & Beverages</td>
+                                        <td>0</td>
+                                        <td>₹60</td>
+                                        <td>₹54</td>
+                                        <td><span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm">Out of Stock</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Add Product Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Add Product</h2>
+                            <form id="addProductForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Product Name</label>
+                                    <input type="text" class="w-full border rounded p-2" required>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Category</label>
+                                        <select class="w-full border rounded p-2" required>
+                                            <option>Food & Beverages</option>
+                                            <option>Personal Care</option>
+                                            <option>Household</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Sub-Category</label>
+                                        <input type="text" class="w-full border rounded p-2">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">MRP</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Stock Quantity</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Retailer Price</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Wholesaler Price</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Distributor Price</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Description</label>
+                                    <textarea class="w-full border rounded p-2 h-20" required></textarea>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Add Product
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Import Inventory Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Import Inventory</h2>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center mb-4">
+                                <i class="bi bi-cloud-upload text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-500 mb-2">Drag and drop CSV file here</p>
+                                <p class="text-gray-400 text-sm mb-3">or</p>
+                                <button class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Browse Files
+                                </button>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="text-lg font-medium mb-2">Upload Requirements</h3>
+                                <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                                    <li>File must be in CSV format</li>
+                                    <li>First row should contain column headers</li>
+                                    <li>Required columns: Product Name, Category, MRP, Stock</li>
+                                    <li>Maximum file size: 5MB</li>
+                                </ul>
+                            </div>
+                            <div class="mt-4">
+                                <button class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors w-full">
+                                    Import Inventory
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicles Tab -->
+                <div id="vehicles" class="tab-content">
+                    <div class="bg-white rounded-lg shadow p-6 mb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">Vehicles</h2>
+                            <button class="px-3 py-1 bg-primary text-white rounded hover:bg-opacity-90 transition-colors">
+                                <i class="bi bi-plus"></i> Add Vehicle
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left border-b">
+                                        <th class="pb-3">Vehicle Number</th>
+                                        <th class="pb-3">Type</th>
+                                        <th class="pb-3">Capacity</th>
+                                        <th class="pb-3">Assigned Agent</th>
+                                        <th class="pb-3">Status</th>
+                                        <th class="pb-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="py-3">MH-01-AB-1234</td>
+                                        <td>Van</td>
+                                        <td>500 kg</td>
+                                        <td>Priya Kumar</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-box-seam"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">MH-01-CD-5678</td>
+                                        <td>Van</td>
+                                        <td>500 kg</td>
+                                        <td>Rahul Singh</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-box-seam"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">MH-01-EF-9012</td>
+                                        <td>Truck</td>
+                                        <td>1500 kg</td>
+                                        <td>Unassigned</td>
+                                        <td><span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">Idle</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-box-seam"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">MH-01-GH-3456</td>
+                                        <td>Van</td>
+                                        <td>500 kg</td>
+                                        <td>Ajay Joshi</td>
+                                        <td><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Maintenance</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-box-seam"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Add Vehicle Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Add Vehicle</h2>
+                            <form id="addVehicleForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Vehicle Number</label>
+                                    <input type="text" class="w-full border rounded p-2" required>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Vehicle Type</label>
+                                        <select class="w-full border rounded p-2" required>
+                                            <option>Van</option>
+                                            <option>Truck</option>
+                                            <option>Bike</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Capacity (kg)</label>
+                                        <input type="number" class="w-full border rounded p-2" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Assign to Agent (Optional)</label>
+                                    <select class="w-full border rounded p-2">
+                                        <option>Select Agent</option>
+                                        <option>Rahul Singh</option>
+                                        <option>Priya Kumar</option>
+                                        <option>Ajay Joshi</option>
+                                        <option>Sanjay Mishra</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Additional Details</label>
+                                    <textarea class="w-full border rounded p-2 h-20"></textarea>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Add Vehicle
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Assign Vehicle Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Assign Vehicle to Delivery Agent</h2>
+                            <form id="assignVehicleForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Vehicle</label>
+                                    <select class="w-full border rounded p-2" required>
+                                        <option>MH-01-EF-9012 (Truck - Unassigned)</option>
+                                        <option>MH-01-GH-3456 (Van - Maintenance)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Delivery Agent</label>
+                                    <select class="w-full border rounded p-2" required>
+                                        <option>Select Agent</option>
+                                        <option>Sanjay Mishra (Unassigned)</option>
+                                        <option>New Agent (Not yet assigned)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Assignment Date</label>
+                                    <input type="date" class="w-full border rounded p-2" value="2023-11-24" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Assignment Notes</label>
+                                    <textarea class="w-full border rounded p-2 h-20"></textarea>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Assign Vehicle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Agents Tab -->
+                <div id="delivery-agents" class="tab-content">
+                    <div class="bg-white rounded-lg shadow p-6 mb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">Delivery Agents</h2>
+                            <button class="px-3 py-1 bg-primary text-white rounded hover:bg-opacity-90 transition-colors">
+                                <i class="bi bi-plus"></i> Add Agent
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left border-b">
+                                        <th class="pb-3">Agent Name</th>
+                                        <th class="pb-3">Phone Number</th>
+                                        <th class="pb-3">Assigned Vehicle</th>
+                                        <th class="pb-3">Current Orders</th>
+                                        <th class="pb-3">Status</th>
+                                        <th class="pb-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                                    <span>RS</span>
+                                                </div>
+                                                Rahul Singh
+                                            </div>
+                                        </td>
+                                        <td>+91 98765 43210</td>
+                                        <td>Van 2 (MH-01-CD-5678)</td>
+                                        <td>12</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-truck"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                                    <span>PK</span>
+                                                </div>
+                                                Priya Kumar
+                                            </div>
+                                        </td>
+                                        <td>+91 98765 12345</td>
+                                        <td>Van 1 (MH-01-AB-1234)</td>
+                                        <td>8</td>
+                                        <td><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-truck"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">
+                                                    <span>AJ</span>
+                                                </div>
+                                                Ajay Joshi
+                                            </div>
+                                        </td>
+                                        <td>+91 87654 32109</td>
+                                        <td>Van 4 (MH-01-GH-3456)</td>
+                                        <td>5</td>
+                                        <td><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Break</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-truck"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="py-3">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white mr-2">
+                                                    <span>SM</span>
+                                                </div>
+                                                Sanjay Mishra
+                                            </div>
+                                        </td>
+                                        <td>+91 76543 21098</td>
+                                        <td>Unassigned</td>
+                                        <td>0</td>
+                                        <td><span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">Off Duty</span></td>
+                                        <td>
+                                            <button class="text-primary hover:text-primary-dark mr-2">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="text-blue-500 hover:text-blue-700 mr-2">
+                                                <i class="bi bi-truck"></i>
+                                            </button>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Add Agent Form -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Add Delivery Agent</h2>
+                            <form id="addAgentForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Full Name</label>
+                                    <input type="text" class="w-full border rounded p-2" required>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Phone Number</label>
+                                        <input type="tel" class="w-full border rounded p-2" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Email</label>
+                                        <input type="email" class="w-full border rounded p-2" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Address</label>
+                                    <textarea class="w-full border rounded p-2 h-20" required></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">ID Type</label>
+                                        <select class="w-full border rounded p-2" required>
+                                            <option>Aadhaar Card</option>
+                                            <option>PAN Card</option>
+                                            <option>Driving License</option>
+                                            <option>Voter ID</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">ID Number</label>
+                                        <input type="text" class="w-full border rounded p-2" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Assign Vehicle (Optional)</label>
+                                    <select class="w-full border rounded p-2">
+                                        <option>Select Vehicle</option>
+                                        <option>MH-01-EF-9012 (Truck - Unassigned)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="bg-primary text-white py-2 px-4 rounded hover:bg-opacity-90 transition-colors">
+                                    Add Agent
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Performance Metrics -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-bold mb-4">Agent Performance</h2>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Select Agent</label>
+                                <select class="w-full border rounded p-2">
+                                    <option>All Agents</option>
+                                    <option>Rahul Singh</option>
+                                    <option>Priya Kumar</option>
+                                    <option>Ajay Joshi</option>
+                                    <option>Sanjay Mishra</option>
+                                </select>
+                            </div>
+                            <div class="space-y-4 mt-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm text-gray-500">On-Time Delivery</span>
+                                        <span class="text-sm text-gray-500">92%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm text-gray-500">Customer Satisfaction</span>
+                                        <span class="text-sm text-gray-500">4.7/5</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 94%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm text-gray-500">Orders Per Day</span>
+                                        <span class="text-sm text-gray-500">12.5</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 83%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <h3 class="font-medium mb-2">Monthly Overview</h3>
+                                <div class="flex border-b pb-2 font-medium text-sm text-gray-500">
+                                    <div class="w-1/3">Month</div>
+                                    <div class="w-1/3 text-center">Orders</div>
+                                    <div class="w-1/3 text-center">Revenue</div>
+                                </div>
+                                <div class="flex py-2 border-b text-sm">
+                                    <div class="w-1/3">November</div>
+                                    <div class="w-1/3 text-center">245</div>
+                                    <div class="w-1/3 text-center">₹24,500</div>
+                                </div>
+                                <div class="flex py-2 border-b text-sm">
+                                    <div class="w-1/3">October</div>
+                                    <div class="w-1/3 text-center">230</div>
+                                    <div class="w-1/3 text-center">₹22,800</div>
+                                </div>
+                                <div class="flex py-2 text-sm">
+                                    <div class="w-1/3">September</div>
+                                    <div class="w-1/3 text-center">210</div>
+                                    <div class="w-1/3 text-center">₹21,500</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Background
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('three-container').appendChild(renderer.domElement);
+
+        // Create a grid of smaller cubes instead of just one
+        const cubes = [];
+        const cubeSize = 0.4;
+        const gridSize = 8;
+        const spacing = 3;
+
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                for (let z = 0; z < 1; z++) { // Only one layer deep for performance
+                    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+                    const material = new THREE.MeshBasicMaterial({ 
+                        color: 0x99a0ff, 
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.3 + Math.random() * 0.2
+                    });
+                    const cube = new THREE.Mesh(geometry, material);
+                    
+                    // Position in a grid
+                    cube.position.x = (x - gridSize / 2) * spacing;
+                    cube.position.y = (y - gridSize / 2) * spacing;
+                    cube.position.z = (z - 1) * spacing - 10;
+                    
+                    // Random initial rotation
+                    cube.rotation.x = Math.random() * Math.PI;
+                    cube.rotation.y = Math.random() * Math.PI;
+                    
+                    // Store rotation speed
+                    cube.userData = {
+                        rotSpeed: {
+                            x: 0.005 + Math.random() * 0.005,
+                            y: 0.005 + Math.random() * 0.005
+                        }
+                    };
+                    
+                    scene.add(cube);
+                    cubes.push(cube);
+                }
+            }
+        }
+
+        camera.position.z = 20;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            cubes.forEach(cube => {
+                cube.rotation.x += cube.userData.rotSpeed.x;
+                cube.rotation.y += cube.userData.rotSpeed.y;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Dashboard View Switching - Show Super Admin by default
+        document.getElementById('superAdminDashboard').classList.remove('hidden');
+        document.getElementById('warehouseAdminDashboard').classList.add('hidden');
+
+        document.getElementById('switchToWarehouse').addEventListener('click', () => {
+            document.getElementById('superAdminDashboard').classList.add('hidden');
+            document.getElementById('warehouseAdminDashboard').classList.remove('hidden');
+        });
+
+        document.getElementById('switchToSuperAdmin').addEventListener('click', () => {
+            document.getElementById('superAdminDashboard').classList.remove('hidden');
+            document.getElementById('warehouseAdminDashboard').classList.add('hidden');
+        });
+
+        // Warehouse Admin Tab Navigation
+        const warehouseTabs = document.querySelectorAll('.warehouse-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        warehouseTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Remove active class from all tabs
+                warehouseTabs.forEach(t => {
+                    t.classList.remove('text-primary', 'bg-indigo-50', 'border-l-4', 'border-primary');
+                    t.classList.add('text-gray-600');
+                });
+                
+                // Add active class to clicked tab
+                tab.classList.add('text-primary', 'bg-indigo-50', 'border-l-4', 'border-primary');
+                tab.classList.remove('text-gray-600');
+                
+                // Show the corresponding tab content
+                const tabId = tab.getAttribute('data-tab');
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Form Submissions
+        document.getElementById('warehouseForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Add warehouse logic here
+            alert('Warehouse added successfully!');
+            e.target.reset();
+        });
+
+        document.getElementById('subscriptionForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Manage subscription logic here
+            alert('Subscription updated successfully!');
+        });
+
+        document.getElementById('assignOrderForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Assign order logic here
+            alert('Orders assigned successfully!');
+        });
+
+        document.getElementById('vehicleInventoryForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Assign vehicle inventory logic here
+            alert('Vehicle inventory assigned successfully!');
+        });
+
+        document.getElementById('addProductForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Add product logic here
+            alert('Product added successfully!');
+            e.target.reset();
+        });
+
+        document.getElementById('addVehicleForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Add vehicle logic here
+            alert('Vehicle added successfully!');
+            e.target.reset();
+        });
+
+        document.getElementById('assignVehicleForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Assign vehicle logic here
+            alert('Vehicle assigned successfully!');
+        });
+
+        document.getElementById('addAgentForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Add agent logic here
+            alert('Delivery agent added successfully!');
+            e.target.reset();
+        });
+
+        // Responsive Design
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
